@@ -1,4 +1,4 @@
-#include "a5_1.h"
+﻿#include "a5_1.h"
 #include <vector>
 #include <math.h>
 #include <bitset>
@@ -6,11 +6,19 @@
 const unsigned state_len = 64;
 const unsigned keystream_len = 64;
 const unsigned input_known_bits = 53;
+const unsigned knownBitsRegB = 11;
 
 int main(int argc, char *argv[])
 {
-	unsigned long long uint_hex_state53 = 0x148000ad800123;
-	unsigned long long uint_hex_keystream = 0xb3f4c70cdd61313f;
+	/*
+	8e25d640207ffeaf - поток 
+	1f7ffd607f5ffb   - заполнение-коллизия, мой формат // ‭ 11111011111111111110101100000011111110101111111111011‬
+	febff7ffff5fdfff - заполнение-оригинал, твой формат // 1111111010111111111101111111111111111111010111111101111111111111
+	febff6003f5fdfff - заполнение-решение, твой формат, андерсоновские биты заполнены нулями
+	febff6001607dfff - заполнение-коллизия, твой формат, андерсоновские биты заполнены нулями
+	*/
+	unsigned long long uint_hex_state53 = 0x1f7ffd607f5ffb;
+	unsigned long long uint_hex_keystream = 0x8e25d640207ffeaf;
 	unsigned long long cur_uint_hex_keystream;
 	
 	//std::cout << "state, hex: " << std::hex << uint_hex_state53 << std::endl;
@@ -26,12 +34,12 @@ int main(int argc, char *argv[])
 	keystream.resize(keystream_len);
 	unsigned k = 0;
 
-	// 1 input
 	std::vector<bool> cur_state;
 	cur_state.resize(state_len);
 	for (auto &x : cur_state)
-		x = true;
-	//cur_state[13] = cur_state[21] = cur_state[23] = cur_state[43] = cur_state[54] = cur_state[56] = false;
+		x = false;
+
+	/*//cur_state[13] = cur_state[21] = cur_state[23] = cur_state[43] = cur_state[54] = cur_state[56] = false;
 	std::bitset<keystream_len> bs_stream;
 	std::bitset<state_len> bs_state;
 	a5_1_obj.setKey(cur_state);
@@ -62,22 +70,24 @@ int main(int argc, char *argv[])
 	std::cout << std::endl;
 	std::cout << "state hex " << std::hex << bs_state.to_ullong() << std::endl;
 	std::cout << "stream hex " << std::hex << bs_stream.to_ullong() << std::endl;
-
+	*/
 	k = 0;
+	bool tmp_b;
 	while (uint_hex_state53) {
+		tmp_b = (uint_hex_state53 & 1) ? true : false;
 		if (k<regClen)
-			cur_state[regAlen + regBlen + k] = (uint_hex_state53 & 1) ? true : false;
-		else if ((k>=regClen) && (k<regClen + midB))
-			cur_state[regAlen + k - regClen] = (uint_hex_state53 & 1) ? true : false;
-		else if ((k >= regClen + midB) && (k<regClen + midB + regAlen))
-			cur_state[k - regClen - midB] = (uint_hex_state53 & 1) ? true : false;
+			cur_state[regAlen + regBlen + k] = tmp_b;
+		else if ((k>=regClen) && (k<regClen + knownBitsRegB))
+			cur_state[regAlen + k - regClen] = tmp_b;
+		else if ((k >= regClen + knownBitsRegB) && (k<regClen + knownBitsRegB + regAlen))
+			cur_state[k - regClen - knownBitsRegB] = tmp_b;
 		uint_hex_state53 >>= 1;
 		k++;
 	}
 	
 	std::cout << "state" << std::endl;
 	for (unsigned i = 0; i < cur_state.size(); i++) {
-		if ( (i <= 29) || (i >= 41) )
+		if ( (i < regAlen + knownBitsRegB) || (i >= regAlen + regBlen) ) // 0..29 30..40 41..63
 			std::cout << std::dec << (cur_state[i] ? "1" : "0");
 		else
 			std::cout << std::dec << "-";
@@ -108,19 +118,18 @@ int main(int argc, char *argv[])
 	
 	for (unsigned long long index = 0; index < regBlast11varsValues.size(); index++) {
 		for ( unsigned i=0; i < regBlast11varsValues[index].size(); i++)
-			cur_state[regAlen + midB + i] = regBlast11varsValues[index][i];
+			cur_state[regAlen + knownBitsRegB + i] = regBlast11varsValues[index][i];
 		a5_1_obj.setKey(cur_state);
-
 		for (unsigned i = 0; i<keystream_len; i++)
 			keystream[i] = a5_1_obj.getNextBit();
-
+		
 		//std::reverse(keystream.begin(), keystream.end());
 
 		cur_uint_hex_keystream = 0;
 		for (unsigned long long i = 0; i < keystream.size(); i++)
 			cur_uint_hex_keystream += keystream[i] ? (unsigned long long)pow(2, i) : 0;
 		if (cur_uint_hex_keystream == uint_hex_keystream)
-			std::cout << "keystream, hex: " << std::hex << cur_uint_hex_keystream << std::endl;
+			std::cout << "correct. keystream, hex: " << std::hex << cur_uint_hex_keystream << std::endl;
 	}
 	
 	return 0;
