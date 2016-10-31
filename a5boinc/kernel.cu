@@ -73,9 +73,9 @@ r1b19=expand(1&(n>>18))
 
 
 #define DEF_R2(n) regtype \
-r2b01=0xffff,\
-r2b02=0xff00ff,\
-r2b03=0xf0f0f0f0,\
+r2b01=0x0000ffff,\
+r2b02=0x00ff00ff,\
+r2b03=0x0f0f0f0f,\
 r2b04=0x33333333,\
 r2b05=0x55555555,\
 r2b06=expand(1&(n>>5)),\
@@ -281,13 +281,14 @@ __device__ inline unsigned int bslc2uint(int i)
 	out |=
 		((0x0000ffff>>i)&1)<<0 | 
 		((0x00ff00ff>>i)&1)<<1 |
-		((0xf0f0f0f0>>i)&1)<<2 |
+		((0x0f0f0f0f>>i)&1)<<2 |
 		((0x33333333>>i)&1)<<3 |
 		((0x55555555>>i)&1)<<4 ;
 	return out;
 }
 
-__global__ void kernel_gpu(regtype* stream_expanded_gpu, unsigned rnum)
+#define TESTTHREAD 0x7fffff
+__global__ void kernel_gpu(regtype* stream_expanded_gpu, const unsigned rnum)
 {
 
 	assert(0x1 == bitselect(0x1, 0x0, 0x1));
@@ -300,8 +301,9 @@ __global__ void kernel_gpu(regtype* stream_expanded_gpu, unsigned rnum)
 	assert(0x1 == bitselect(0x1, 0x1, 0x0));
 	if (((blockIdx.x << BLOCKSIZE) + threadIdx.x) == 0) return;
 	const unsigned int tid = (blockIdx.x << BLOCKSIZE) + threadIdx.x;
-	DEF_R1(rnum);
-	DEF_R2((rnum>>19) << 5);
+
+	DEF_R1(rnum>>6);
+	DEF_R2((rnum&0x3f) << 5);
 	DEF_R3(tid);
 
 	// STAGE 1 - compute R2 register
@@ -314,10 +316,10 @@ __global__ void kernel_gpu(regtype* stream_expanded_gpu, unsigned rnum)
 	unsigned long long tmp2 = 0; 
 	for (int i = 0; i<64; ++i) {
 		// majority
-		regtype maj = ~(r1b10 ^ r2b11 ^ r3b11);
+		regtype maj = ~((r1b09 & r2b11) | (r2b11 & r3b11) | (r1b09 & r3b11));
 
 		//AssertR1Nozeros(REGS_R1);
-		regtype m1 = r1b10 ^ maj;
+		regtype m1 = r1b09 ^ maj;
 		ClockR1(REGS_R1, m1);
 
 		//AssertR3Nozeros(REGS_R3);
@@ -335,13 +337,8 @@ __global__ void kernel_gpu(regtype* stream_expanded_gpu, unsigned rnum)
 		cval_old = cval_next;
 
 		regtype o = r1b19 ^ r2b22 ^ r3b23;
-		/*
-		if (tid == 0x123)
-		{
-			tmp |= (unsigned long long)((o & 1))<<i;
-			tmp2 |= (unsigned long long)((stream_expanded_gpu[i] & 1))<<i;
-		}
-		*/
+		//tmp |= (unsigned long long)((o & 1))<<i;
+		//tmp2 |= (unsigned long long)((stream_expanded_gpu[i] & 1))<<i;
 
 		dead_lanes |= (stream_expanded_gpu[i] ^ o)&(~st1mode); // only for stage 2
 		//printf ("%x:", dead_lanes);
@@ -357,28 +354,26 @@ __global__ void kernel_gpu(regtype* stream_expanded_gpu, unsigned rnum)
 				gpu_result =
 				(((unsigned)bslc2uint(i)) << 23)|
 				((unsigned)tid);
-				//if (tid == 0x123) printf ("\n gpures %lx", gpu_result);
+				//if (tid == TESTTHREAD) printf ("\n gpures %x", gpu_result);
 				break;
 			}
 	}
 
 	/*
-	if (tid == 0x123)
+	if (tid == TESTTHREAD)
 	{
 
-		printf ("\n %lx", gpu_result);
+		printf ("\n %x", gpu_result);
 		printf ("\n %llx", tmp);
 		printf ("\n %llx", tmp2);
+		printf("\n");
 	}
 	*/
-	//printf("\n");
 	
 }
 
 unsigned long long RunKernel(unsigned long long c_stream, unsigned long long start, unsigned long long stop, int device)
 {
-	//test key 53 bit 0x948000ad800123
-	//test stream 0xb3f4c70cdd61313f
 
 	regtype stream_expanded[8*sizeof(c_stream)];
 	for (int i = 0; i<8*sizeof(c_stream); ++i)
@@ -414,9 +409,8 @@ unsigned long long RunKernel(unsigned long long c_stream, unsigned long long sta
 	cudaEventCreate(&kernel_stop);
 	cudaEventRecord(kernel_start);
 	//printf("start-stop %x %x", start_regs, stop_regs);
-	unsigned h_result = 0;
 	unsigned long long out = 0;
-	for (unsigned i = start_regs; i < stop_regs; i++) 
+	for (unsigned i = start_regs; i <= stop_regs; i++) 
 	{
 		kernel_gpu <<<(1 << (R3LEN - BLOCKSIZE)), 1<<BLOCKSIZE >>> (stream_expanded_gpu, i);
 		#ifndef NDEBUG
@@ -424,14 +418,18 @@ unsigned long long RunKernel(unsigned long long c_stream, unsigned long long sta
 		cudaError_t err = cudaGetLastError();
 		checkCudaErrors(err);
 		#endif
+		unsigned h_result = 0;
 		checkCudaErrors(cudaMemcpyFromSymbol(&h_result, gpu_result, sizeof(gpu_result), 0, cudaMemcpyDeviceToHost));
 		if (h_result != 0)
 		{
 			out =(((unsigned long long)i) << (23+5)) | ((unsigned long long)h_result) ;
+			//printf("\nResult: %llx", out);
+			unsigned long long out_oleg = ((out >> 34) | ((out & 0x3FF800000)>>4) | ((out & 0x7FFFFF)<<(22+19)));
+			//printf("\nResult_oleg: %llx", out_oleg);
 			break;
 		}
 	}
-	//printf("\nResult: %llx", out);
+
 	cudaThreadSynchronize();
 	cudaEventRecord(kernel_stop);
 	cudaEventSynchronize(kernel_stop);
