@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{9A99D652-C88B-4C4B-9161-B8A560A04045}</ProjectGuid>
-    <RootNamespace>AndersonAttack</RootNamespace>
+    <ProjectGuid>{FF95EFAB-EB27-4B4B-9792-134B175BC6FF}</ProjectGuid>
+    <RootNamespace>work_generator_AA</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -110,7 +110,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="work_generator_AndersonAttack.cpp" />
+    <ClCompile Include="..\work_generator_AA.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
