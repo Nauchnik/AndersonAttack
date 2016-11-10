@@ -17,8 +17,11 @@ int main(int argc, char *argv[])
 	febff6003f5fdfff - заполнение-решение, твой формат, андерсоновские биты заполнены нулями
 	febff6001607dfff - заполнение-коллизия, твой формат, андерсоновские биты заполнены нулями
 	*/
-	unsigned long long uint_hex_state53 = 0x1f7ffd607f5ffb;
-	unsigned long long uint_hex_keystream = 0x8e25d640207ffeaf;
+	//unsigned long long uint_hex_state53 = 0xc0a8e6d2131a7;
+	//unsigned long long uint_hex_keystream = 0x770c0410869366f1;
+	//
+	unsigned long long uint_hex_state53 = 0x4004a09ea8a8d;
+	unsigned long long uint_hex_keystream = 0x7bb7f83d26072ec;
 	unsigned long long cur_uint_hex_keystream;
 	
 	//std::cout << "state, hex: " << std::hex << uint_hex_state53 << std::endl;
