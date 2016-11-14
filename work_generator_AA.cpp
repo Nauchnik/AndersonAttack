@@ -105,8 +105,9 @@ int main( int argc, char *argv[])
 	unsigned long long cur_index_from = 0, cur_index_to = 0;
 	for (unsigned long long keystream_index = 0; keystream_index < known_keystream_hex_vec.size(); keystream_index++) {
 		for (unsigned long long wu_index = 0; wu_index < wu_total_number; wu_index++) {
-			if ((keystream_index != 4) && (keystream_index != 6) && (keystream_index != 7))
-				continue;
+			// generate WUs only for particular keystreams
+			/*if ((keystream_index != 4) && (keystream_index != 6) && (keystream_index != 7))
+				continue;*/
 			
 			cur_index_from = wu_index << SUBPROBLEMS_PER_CHUNK_VARS + (SEARCH_SPACE_VARS - WU_VARS);
 			cur_index_to = (wu_index + 1) << SUBPROBLEMS_PER_CHUNK_VARS + (SEARCH_SPACE_VARS - WU_VARS);
