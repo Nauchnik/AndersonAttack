@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <helper_cuda.h>
-
+#include <boinc_api.h>
 
 #define R1LEN 19
 #define R2LEN 22
@@ -16,7 +16,9 @@
 #define BLOCKSIZE 8
 
 
-#define m_CopyToGPU(d, s,  bytes){ checkCudaErrors(cudaMalloc((void**) &d, bytes)); checkCudaErrors(cudaMemcpy((void*) d, (void*)s, bytes, cudaMemcpyHostToDevice)); }
+//#define m_CopyToGPU(d, s,  bytes){ checkCudaErrors(cudaMalloc((void**) &d, bytes)); checkCudaErrors(cudaMemcpy((void*) d, (void*)s, bytes, cudaMemcpyHostToDevice)); }
+#define m_CopyToGPU(d, s,  bytes){ if(cudaSuccess != cudaMalloc((void**) &d, bytes)) boinc_temporary_exit(60); checkCudaErrors(cudaMemcpy((void*) d, (void*)s, bytes, cudaMemcpyHostToDevice)); }
+
 typedef unsigned regtype;
 
 
@@ -73,11 +75,11 @@ r1b19=expand(1&(n>>18))
 
 
 #define DEF_R2(n) regtype \
-r2b01=0x0000ffff,\
-r2b02=0x00ff00ff,\
-r2b03=0x0f0f0f0f,\
-r2b04=0x33333333,\
-r2b05=0x55555555,\
+r2b01=0xaaaaaaaa,\
+r2b02=0xcccccccc,\
+r2b03=0xf0f0f0f0,\
+r2b04=0xff00ff00,\
+r2b05=0xffff0000,\
 r2b06=expand(1&(n>>5)),\
 r2b07=expand(1&(n>>6)),\
 r2b08=expand(1&(n>>7)),\
@@ -238,7 +240,7 @@ __device__ inline void AssertR1Nozeros(DEF_REGS_R1)
 	assert(0xffffffff == (b01 | b02 | b03 | b04 | b05 | b06 | b07 | b08 | b09 | b10 | b11 | b12 | b13 | b14 | b15 | b16 | b17 | b18 | b19));
 }
 
-__device__ inline regtype AddAndCheckBitwise(regtype& b0, regtype& b1, regtype& b2, regtype& b3, regtype in)
+__device__ inline regtype AddAndCheckBitwise(regtype& b0, regtype& b1, regtype& b2, regtype& b3, regtype& in)
 {
 	const int VALUE = 11;
 	const regtype y0 = expand(1 & (VALUE >> 0));
@@ -261,7 +263,7 @@ __device__ inline regtype AddAndCheckBitwise(regtype& b0, regtype& b1, regtype& 
 
 	//		printf ("%x ", (b0^y0) | (b1^y1) | (b2^y2) | (b3^y3));
 	//Check value again
-	return (in & ((b0^y0) | (b1^y1) | (b2^y2) | (b3^y3)));
+	return ((b0^y0) | (b1^y1) | (b2^y2) | (b3^y3));
 }
 
 __device__ inline regtype CheckBitwise(regtype& b0, regtype& b1, regtype& b2, regtype& b3)
@@ -279,13 +281,15 @@ __device__ inline unsigned int bslc2uint(int i)
 	unsigned int out = 0x0;
 
 	out |=
-		((0x0000ffff>>i)&1)<<0 | 
-		((0x00ff00ff>>i)&1)<<1 |
-		((0x0f0f0f0f>>i)&1)<<2 |
-		((0x33333333>>i)&1)<<3 |
-		((0x55555555>>i)&1)<<4 ;
+		((0xaaaaaaaa>>i)&1)<<0 | 
+		((0xcccccccc>>i)&1)<<1 |
+		((0xf0f0f0f0>>i)&1)<<2 |
+		((0xff00ff00>>i)&1)<<3 |
+		((0xffff0000>>i)&1)<<4 ;
 	return out;
 }
+
+__device__ unsigned int b2ul(regtype& reg, int ln) { return (reg>>ln)&1;}
 
 #define TESTTHREAD 0x7fffff
 __global__ void kernel_gpu(regtype* stream_expanded_gpu, const unsigned rnum)
@@ -301,74 +305,101 @@ __global__ void kernel_gpu(regtype* stream_expanded_gpu, const unsigned rnum)
 	assert(0x1 == bitselect(0x1, 0x1, 0x0));
 	if (((blockIdx.x << BLOCKSIZE) + threadIdx.x) == 0) return;
 	const unsigned int tid = (blockIdx.x << BLOCKSIZE) + threadIdx.x;
+	//const unsigned long long answer = 0xc0a8e6d2131a7;
+	//const unsigned long long answer = 0x17ef8ae772e7c0;
+       	
+	//if (((blockIdx.x << BLOCKSIZE) + threadIdx.x) != (answer & ((1<<23)-1))) return;
+	//const int bslc_thread = (answer >> 23) & 0x1f;
 
-	DEF_R1(rnum>>6);
-	DEF_R2((rnum&0x3f) << 5);
-	DEF_R3(tid);
-
-	// STAGE 1 - compute R2 register
-	unsigned dead_lanes = 0x0;
-	regtype s0 = 0, s1 = 0, s2 = 0, s3 = 0;
-
-	regtype cval_old = r2b22 = r1b19 ^ stream_expanded_gpu[0] ^ r3b23;
-
-	unsigned long long tmp = 0; 
-	unsigned long long tmp2 = 0; 
-	for (int i = 0; i<64; ++i) {
-		// majority
-		regtype maj = ~((r1b09 & r2b11) | (r2b11 & r3b11) | (r1b09 & r3b11));
-
-		//AssertR1Nozeros(REGS_R1);
-		regtype m1 = r1b09 ^ maj;
-		ClockR1(REGS_R1, m1);
-
-		//AssertR3Nozeros(REGS_R3);
-		regtype m3 = r3b11 ^ maj;
-		ClockR3(REGS_R3, m3);
-
-		regtype cval_next = r1b19 ^ stream_expanded_gpu[i] ^ r3b23;
-
-		//AssertR2Nozeros(REGS_R2);
-		regtype m2 = r2b11 ^ maj;
-		regtype st1mode = AddAndCheckBitwise(s0, s1, s2, s3, m2); // Stage 1 or 2 flag
-		dead_lanes |= st1mode & (~m2 & (cval_old ^ cval_next)); // Early conflict!
-		r2b21 = bitselect(cval_next, r2b21, st1mode);
-		ClockR2(REGS_R2, m2);
-		cval_old = cval_next;
-
-		regtype o = r1b19 ^ r2b22 ^ r3b23;
-		//tmp |= (unsigned long long)((o & 1))<<i;
-		//tmp2 |= (unsigned long long)((stream_expanded_gpu[i] & 1))<<i;
-
-		dead_lanes |= (stream_expanded_gpu[i] ^ o)&(~st1mode); // only for stage 2
-		//printf ("%x:", dead_lanes);
-		if (dead_lanes == 0xffffffff )
-			break;
-	}
-
-	if (dead_lanes != 0xffffffff)
+	// Try two possible variants of r2bit22 - dirty workaround.
+	// It is trivially possible to calculate it from the stream
+	// instead, but then the i/o format would be broken.
+	for (int try_r2bit22=0; try_r2bit22<=1; ++try_r2bit22)
 	{
-		for (int i=0; i<32; ++i)
-			if(((dead_lanes >> i)&1) == 0)
+		DEF_R1(rnum>>6);
+		DEF_R2((rnum&0x3f) << 5);
+		DEF_R3(tid);
+
+		// STAGE 1 - compute R2 register
+		unsigned dead_lanes = 0x0;
+		regtype s0 = 0, s1 = 0, s2 = 0, s3 = 0;
+
+		//regtype cval_old = r2b22 = r1b19 ^ stream_expanded_gpu[0] ^ r3b23;
+		
+		
+		
+		regtype cval_old = r2b22 = expand(try_r2bit22);
+
+		unsigned long long tmp = 0; 
+		unsigned long long tmp2 = 0; 
+		// FIXME Should start from 1 !!!
+		for (int i = 0; i<64; ++i) {
+			// majority
+			regtype maj = ~((r1b09 & r2b11) | (r2b11 & r3b11) | (r1b09 & r3b11));
+
+			//AssertR1Nozeros(REGS_R1);
+			regtype m1 = r1b09 ^ maj;
+			ClockR1(REGS_R1, m1);
+
+			//AssertR3Nozeros(REGS_R3);
+			regtype m3 = r3b11 ^ maj;
+			ClockR3(REGS_R3, m3);
+
+			regtype cval_next = r1b19 ^ stream_expanded_gpu[i] ^ r3b23;
+
+			//AssertR2Nozeros(REGS_R2);
+			regtype m2 = r2b11 ^ maj;
+			regtype st1mode = AddAndCheckBitwise(s0, s1, s2, s3, m2); // Stage 1 or 2 flag
+			/*
+			if (b2ul(m2, bslc_thread)) 
 			{
-				gpu_result =
-				(((unsigned)bslc2uint(i)) << 23)|
-				((unsigned)tid);
-				//if (tid == TESTTHREAD) printf ("\n gpures %x", gpu_result);
-				break;
+				//printf ("%x ", (st1mode>>bslc_thread)&1);
+				//printf ("%x:%x%x%x%x ", (st1mode>>bslc_thread)&1,b2ul(s3, bslc_thread),b2ul(s2, bslc_thread),b2ul(s1, bslc_thread),b2ul(s0, bslc_thread));
 			}
-	}
+			*/
+			dead_lanes |= st1mode & (~m2 & (cval_old ^ cval_next)); // Early conflict!
+			//printf ("%x:", dead_lanes&4);
+			r2b21 = bitselect(cval_next, r2b21, st1mode & m2);
+			ClockR2(REGS_R2, m2);
+			cval_old = cval_next;
 
-	/*
-	if (tid == TESTTHREAD)
-	{
+			regtype o = r1b19 ^ r2b22 ^ r3b23;
+			//tmp |= (unsigned long long)((o & 1))<<i;
+			//tmp2 |= (unsigned long long)((stream_expanded_gpu[i] & 1))<<i;
 
-		printf ("\n %x", gpu_result);
-		printf ("\n %llx", tmp);
-		printf ("\n %llx", tmp2);
-		printf("\n");
+			dead_lanes |= ((stream_expanded_gpu[i] ^ o)&(~st1mode)); // only for stage 2
+			//printf ("(%x:%x) ", (dead_lanes>>bslc_thread)&1, (st1mode>>bslc_thread)&1);
+			if (dead_lanes == 0xffffffff )
+				break;
+		}
+		//printf ("\nEND bs %i", bslc_thread);
+
+		if (dead_lanes != 0xffffffff)
+		{
+			for (int i=0; i<32; ++i)
+				if(((dead_lanes >> i)&1) == 0)
+				{
+					gpu_result =
+					(((unsigned)bslc2uint(i)) << 23)|
+					((unsigned)tid);
+					//if (tid == TESTTHREAD) printf ("\n gpures %x", gpu_result);
+					//printf ("th %i ", i);
+					//printf ("x %x ",(unsigned)bslc2uint(i) );
+					break;
+				}
+		}
+
+		/*
+		if (tid == TESTTHREAD)
+		{
+
+			printf ("\n %x", gpu_result);
+			printf ("\n %llx", tmp);
+			printf ("\n %llx", tmp2);
+			printf("\n");
+		}
+		*/
 	}
-	*/
 	
 }
 
@@ -410,9 +441,11 @@ unsigned long long RunKernel(unsigned long long c_stream, unsigned long long sta
 	cudaEventRecord(kernel_start);
 	//printf("start-stop %x %x", start_regs, stop_regs);
 	unsigned long long out = 0;
-	for (unsigned i = start_regs; i <= stop_regs; i++) 
+	for (unsigned i = start_regs; i < stop_regs; i++) 
 	{
+		boinc_begin_critical_section();
 		kernel_gpu <<<(1 << (R3LEN - BLOCKSIZE)), 1<<BLOCKSIZE >>> (stream_expanded_gpu, i);
+		boinc_end_critical_section();
 		#ifndef NDEBUG
 		cudaThreadSynchronize();
 		cudaError_t err = cudaGetLastError();

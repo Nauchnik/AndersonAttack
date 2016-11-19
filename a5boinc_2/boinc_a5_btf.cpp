@@ -20,12 +20,21 @@
 unsigned long long RunKernel(unsigned long long c_stream, unsigned long long start, unsigned long long stop, int device);
 int main(int argc, char** argv)
 {
-	int device = 0;
+	int device_arg = 0;
 	if (argc == 3)
 		if (std::string(argv[1])=="--device")
-			device = atoi(argv[2]);
+			device_arg = atoi(argv[2]);
+	int device;
+	APP_INIT_DATA aid;
+	boinc_get_init_data(aid);
+	if (aid.gpu_device_num >= 0) {
+		   device = aid.gpu_device_num;
+	} else {
+		   device = device_arg;
+	}
 
 	char buf[256];
+	
 	int retval = boinc_init();
 	if (retval)
 	{
@@ -33,6 +42,7 @@ int main(int argc, char** argv)
 			boinc_msg_prefix(buf, sizeof(buf)), retval);
 		exit(retval);
 	}
+	
 
 	std::ofstream outfile;
 
@@ -45,7 +55,9 @@ int main(int argc, char** argv)
 		infile >> std::hex >> a >> b >> c;
 	}
 	//std::cout << std::endl << " " << a << " " << b  << " " << c << std::endl;
+	
 	unsigned long long out = RunKernel(a, b, c, device);
+	
 	{
 		std::string output_path;
 		boinc_resolve_filename_s (OUTPUT_FILENAME, output_path);
