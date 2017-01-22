@@ -2,6 +2,8 @@
 #include <vector>
 #include <math.h>
 #include <bitset>
+#include <fstream>
+#include <sstream>
 
 const unsigned state_len = 64;
 const unsigned keystream_len = 64;
@@ -20,10 +22,32 @@ int main(int argc, char *argv[])
 	//unsigned long long uint_hex_state53 = 0xc0a8e6d2131a7;
 	//unsigned long long uint_hex_keystream = 0x770c0410869366f1;
 	//
-	unsigned long long uint_hex_state53 = 0x4004a09ea8a8d;
-	unsigned long long uint_hex_keystream = 0x7bb7f83d26072ec;
-	unsigned long long cur_uint_hex_keystream;
+	unsigned long long uint_hex_state53 = 0;
+	unsigned long long uint_hex_keystream = 0;
+
+#ifdef _DEBUG
+	argc = 2;
+	argv[1] = "anderson_attack_a5_exp4-keystream7-wu2192";
+#endif
+
+	if (argc < 2) {
+		std::cerr << "Usage : [input file - 64-bit keystream, 53-bit state of A5/1";
+		exit(1);
+	}
 	
+	std::string ifile_name = argv[1];
+	std::ifstream ifile(ifile_name.c_str());
+	if (!ifile.is_open()) {
+		std::cerr << "couldn't open file " << ifile_name << std::endl;
+		exit(1);
+	}
+	std::stringstream sstream;
+	std::string str;
+	getline(ifile, str);
+	sstream << str;
+	sstream >> std::hex >> uint_hex_keystream >> uint_hex_state53;
+	ifile.close();
+
 	//std::cout << "state, hex: " << std::hex << uint_hex_state53 << std::endl;
 	std::vector<std::vector<bool>> state_vec;
 	unsigned addit_bits_number = keystream_len - input_known_bits;
@@ -119,21 +143,33 @@ int main(int argc, char *argv[])
 		regBlast11varsValues[index] = b_vec;
 	}
 	
+	unsigned long long cur_uint_hex_whole_state = 0;
+	unsigned long long cur_uint_hex_keystream = 0;
 	for (unsigned long long index = 0; index < regBlast11varsValues.size(); index++) {
 		for ( unsigned i=0; i < regBlast11varsValues[index].size(); i++)
 			cur_state[regAlen + knownBitsRegB + i] = regBlast11varsValues[index][i];
 		a5_1_obj.setKey(cur_state);
 		for (unsigned i = 0; i<keystream_len; i++)
 			keystream[i] = a5_1_obj.getNextBit();
-		
-		//std::reverse(keystream.begin(), keystream.end());
 
 		cur_uint_hex_keystream = 0;
 		for (unsigned long long i = 0; i < keystream.size(); i++)
 			cur_uint_hex_keystream += keystream[i] ? (unsigned long long)pow(2, i) : 0;
-		if (cur_uint_hex_keystream == uint_hex_keystream)
+		if (cur_uint_hex_keystream == uint_hex_keystream) {
 			std::cout << "correct. keystream, hex: " << std::hex << cur_uint_hex_keystream << std::endl;
+			cur_uint_hex_whole_state = 0;
+			for (unsigned long long i = 0; i < cur_state.size(); i++)
+				cur_uint_hex_whole_state += cur_state[i] ? (unsigned long long)pow(2, i) : 0;
+			std::cout << "correct. whole state, hex: " << std::hex << cur_uint_hex_whole_state << std::endl;
+			break;
+		}
 	}
+
+	std::string ofile_name = ifile_name + "_out";
+	std::ofstream ofile(ofile_name.c_str());
+	ofile << "correct. keystream, hex: " << std::hex << cur_uint_hex_keystream << std::endl;
+	ofile << "correct. whole state, hex: " << std::hex << cur_uint_hex_whole_state << std::endl;
+	ofile.close();
 	
 	return 0;
 }
