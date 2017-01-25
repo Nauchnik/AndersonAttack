@@ -15,3 +15,10 @@
 *.PDF	 diff=astextplain
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
+=======
+#hint by https://idnotfound.wordpress.com/2009/05/09/word-by-word-diffs-in-git/
+*.tex    diff=tex
+
+# unix  line endings at unix files
+gradlew eol=lf
+*.sh eol=lf
