@@ -140,15 +140,18 @@ qt=false%
 
 \begin{document}
 
-\title{Paper Title}
+\title{Implementation of a Brute Force Attack on A5/1 Cryptographical
+Algorithm in a GPU-based Volunteering Computing Project}
 %If Title is too long, use \titlerunning
 %\titlerunning{Short Title}
 
 %Single insitute
-\author{Firstname Lastname \and Firstname Lastname}
+\author{Bulavintsev V. \and Semenov A. \and Zaikin O.}
 %If there are too many authors, use \authorrunning
 %\authorrunning{First Author et al.}
-\institute{Institute}
+\institute{Matrosov Institute for System Dynamics and Control Theory of
+Siberian Branch of Russian Academy of Sciences
+(ISDCT SB RAS)}
 
 %Multiple insitutes
 %Currently disabled
@@ -170,11 +173,28 @@ Insitute 2\\
 \maketitle
 
 \begin{abstract}
-Abstract goes here
+We present an advanced brute force attack on the A5/1 cryptoalgorithm,
+	that is still broadly used in modern GSM networks. We use a
+	well-known idea introduced by R.Anderson more than 20 years ago
+	to greatly reduce the search space. The primary contribution of
+	this article is the implementation of the Anderson's attack on a GPU platform
+	with the bitslice technique. The preliminary estimates of the
+	attack's speed showed that, with the use of a GPUs processing power, 
+	the attack could be conducted in the real
+	time on a modern computer cluster or in a volunteer computing
+	project. To verify our estimates with the use of BOINC technology 
+	we concieved the specialized volunteering computing project 
+	and executed our variant of Anderson's attack within it. In the
+	7 days the project lasted, 10 A5/1 cryptanalysis problems were
+	solved. The results presented in this work provide yet another
+	proof of A5/1's cryptographical weakness that make it totally
+	unsuitable for transmission of any kind of sensitive data
+	through modern GSM networks.
+
 \end{abstract}
 
 \begin{keywords}
-keyword1, keyword2
+A5/1 algorithm, brute-force cryptanalysis, GPU, volunteering computing
 \end{keywords}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
