@@ -237,17 +237,17 @@ provide the most practical method of A5/1 cryptanalysis.  It's main shortcoming
 is that the probability of success is significantly less than 100\%. Meanwhile,
 the growth of computational power of GPUs and FPGAs made practical the attack
 based on reduction of search space from $2^64$ to $2^53$, which was described
-by R.  Anderson in 1994. As was mentioned earlier, FPGA-based variant of the
-Anderson's attack was already performed in 2008 by COPACOBANA creators. So, the
-primary goal of our work is to demonstrate the viability of GPU-based variant
-of the attack. Let us note that GPUs are much easier to operate than FPGAs, and
-the former belong to the class of consumer-grade devices and could be found in
-any modern PC, while the latter belong to the class of specialized equipment.
-With the usage of the BOINC software platform \cite{BOINC_C}, this qualities of
-GPUs allowed us to implement the attack in the form of a volunteering computing
-project using idle computational capabilites of the project members home PCs.
-Our estimates of attack's speed were based on our previous
-work\cite{BUL_SEM_2016}.
+by R.  Anderson in 1994 \cite{ANDERSON}. As was mentioned earlier, FPGA-based
+variant of the Anderson's attack was already performed in 2008 by COPACOBANA
+creators.  So, the primary goal of our work is to demonstrate the viability of
+GPU-based variant of the attack. Let us note that GPUs are much easier to
+operate than FPGAs, and the former belong to the class of consumer-grade
+devices and could be found in any modern PC, while the latter belong to the
+class of specialized equipment.  With the usage of the BOINC software platform
+\cite{BOINC_C}, this qualities of GPUs allowed us to implement the attack in
+the form of a volunteering computing project using idle computational
+capabilites of the project members home PCs.  Our estimates of attack's speed
+were based on our previous work\cite{BUL_SEM_2016}.
 
 Let's make a brief outline of the article's contents. In \Cref{sec:alg} we
 describe the A5/1 algorithm along with some advanced brute-force attacks on it.
@@ -333,8 +333,8 @@ probability in less than a minute with $>85\%$ probability. The tables take
 about 2Tb of disk space. This attack is presented in detail in \cite{RAINBOW},
 and still stands among the most practical ones. Instead, we will focus on the
 idea of an attack that was suggested by Ross Anderson in 1994 in a small essay
-on the A5/1 cryptographic strength \cite{COPAC}. Next we describe the essence
-of the Anderson's attack.
+on the A5/1 cryptographic strength \cite{ANDERSON}. Next we describe the
+essence of the Anderson's attack.
 
 
 \begin{figure}
@@ -686,66 +686,117 @@ collisions).
 \end{table}
 
 
-Performance of the different implementations of the According to BOINC
-statistics, 143 active hosts of 90 volunteers participated in the experiment.
-Here by ‘active’ we mean a host which correctly processed at least one task.
-Active volunteer has at least one active host. It should be noted, there is
-only 1 volunteer from Russia in top-10 project volunteers list (formed
-according to the amount of credits), the most of them are from United States (4
-persons). In top-10 list of teams there is only one team from Russia too.
+According to BOINC statistics, 143 active hosts of 90 volunteers participated
+in the experiment.  Here by ‘active’ we mean a host which correctly processed
+at least one task.  Active volunteer has at least one active host. It should be
+noted, there is only 1 volunteer from Russia in top-10 project volunteers list
+(formed according to the amount of credits), the most of them are from United
+States (4 persons). In top-10 list of teams there is only one team from Russia
+too.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related works.}\label{sec:related}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+As was noted before, at the time of writing of our article the A5/1 algorithm
+remains one of the most popular research subjects among cryptography
+specialists, along with DES and RSA algorithms. The exact authorship of this
+algorithm is unknown, but some experts argue that chances are high that it's
+creation should be attributed to a French special agencies. Numerous sources
+describe the events that led to it's structure leaked to general public. In
+fact, it's internal workings were already known to research community in 1994:
+R.Anderson's note (a mailing list message) written in that period was one of
+the firs works on A5/1 cryptanalysis. The complete knowledge of the A5/1 were
+acquired in 1999 as a result of a reverse engineering of a mobile phone.
+
+Earlier we mentioned Anderson's attack (described by Ron Anderson in a short
+note in 1994 \cite{ANDERSON}) was the first attack on A5/1 with compexity less
+than that of a trivial brute-force walk over the whole keyspace. Shortly
+afterwards J.Golic suggested the "Alleged" attack on the A5/1, based on a
+linearization of the equations describing A5/1 \cite{GOLIC}. The Golic's attack
+estimated complexity is $C\dot2^{40}$, where $C$ denoting the complexity of
+solving the system of linear equations over $GF(2)$ with a very substanial
+number of dimensions. The next widely known attack on the A5/1 was presented in
+\cite{BSW}. To speed up the A5/1 algorithm it's authors used the technique of
+precomputation of LFSRs we mentioned in \cref{sec:bitsl}. It's worth to note
+that the attack presented in \cite{BSW}, along with those presented in
+\cite{BIKHAM2000}, \cite{EKDAHL2003}, \cite{BARKAN2008} \todo{Check the actual
+articles! Not sure if these point to the right ones.}, require substanial
+lengths of known keystream (several seconds at best). These attacks can be
+deemed realistic, but they do not demonstrate vulnerability of the GSM security
+protocols as evidently, as those belonging to the "advanced brute force" class,
+that we will discuss below. For the rest of the section we consider an attack
+practical if it's real-life implementation is able to persistently find the
+secret key by analyzing no more than 2 frames (912 bits) of the keystream, the
+amount that could always be extracted from a call in a GSM network by
+exploiting the protocol vulnerability described in \Cref{sec:alg}.
+
+It seems that the first practical attack ('practical' in a sense we established
+above) was presented in \cite{COPAC_1}. It's authors implemented the optimezed
+variant of the Anderson's attack on specialized computational device of their
+own design, assembled from 120 "Xilinx Spartan 3" FPGAs. The authors state
+\cite{COPAC_1} that the attack took about 6 hours to complete. It's worth
+mentioning that the COPACOBANA architecture was used for cryptanalytical
+research of several other ciphers, e.g. DES \cite{COPAC_2}.
+
+The first estimates of the time required for the cryptanalysis of A5/1 on a
+computational cluster in the form of a boolean satisfiability problem (SAT)
+\cite{HANDBOOK} were presented in \cite{PACO-2008}. SAT-based cryptanalysis is
+considered a perspective direction of cryptanalysis that seems to be on the
+rise for the last decade. It operates within a paradigm that the
+cryptanalytical problem could be effeciently represented in the form of a SAT
+problem. This could be achieved with the help of special translators such as
+\cite{CRYPTOL}, \cite{URSA}, \cite{TRANSALG}. After the problem was translated
+to a SAT form, it can be efficiently solved by modern SAT algorithms that could
+run in a distributed computing environment. The cryptanalysis time of A5/1
+estimated in \cite{PACO-2008} was realistic, but since the exclusive usage of
+the whole computational cluster for prolonged period of time was not an option,
+the actual attack was performed a year later in a specialized grid-system
+\cite{TRUDY_ISA}. In the following years these results were improved - the
+search space of $2^{31}$ SAT instances was processed completely and collisions
+(different secret keys generating the same keystream) have been found
+\cite{SZBP}. At the same period it became apparent that the organizational
+requirements of this kind of cryptographical attack fits well into the ideology
+of volunteering computing projects \todo{cite what?}. To bring this line of
+thought to life in 2012 SAT@home \cite{SATHOME} volunteering computing project
+was incepted. Through 4 years of it's activity a number of hard combinatorial
+problems were solved within the SAT paradigm. Among those were several dozens
+of cryptanalysis of A5/1 generator problems (only one burst - 114 bits of
+keystream - was used each time). These results were published in
+\cite{PACT_2015}, \cite{SPRINGER}.
+
+The work \cite{COPAC_2} included the estimates of creation time and disk space
+that would be required to create the rainbow-tables that would make possible to
+'break' the A5/1 on an average PC in several minutes. \cite{COPAC_2} estimated
+these to occupy about 7 Tb of disk space. "The A51 Cracking Project" put the
+significantly more compact (2 Tb) tables into public domain at the end of 2009
+\todo {cite what?}. By analysing 2 frames (912 bits) of known keystream with
+the help of this tables one can restore the secret key with probability of
+success over 85\%. This method of cryptanalysis of the A5/1 algorithm could be
+assumed to be the most practical. The fact that it does not provide 100\%
+guarantee of success from analysis of 2 frames does not matter in real
+circuimstances, where much longer samples of keystream are available to the
+attacker. It should be noted that if the tables are lost, it will require a
+vast amount of computational resources to generate them again.
+
+Finally, the attack we presented in this paper does not lose on the practical
+side to the rainbow-tables attack, because it allows to complete the
+cryptanalysis with 100\% success rate in a period of several hours in a small
+volunteering computation project. Moreover, the attack requires only 64 bits of
+known keystream. Volunteering computing projects are rising in popularity and
+publicity in the last years, so any "hot" problem (like a cryptanalysis of one
+of the most commonly used ciphers) immediately gets volunteers attention.
+
+As a conclusion, we would like to express the hope that the efficiency of our
+implementation of attack on A5/1 generator will serve as yet another strong
+argument against the usage of this algorithm in the transfer of sensible data
+through GSM networks.
 
 
-
-Winery~\cite{Winery} is graphical \commentontext{modeling}{modeling with one \enquote{l}, because of AE} tool.
-
-\begin{figure}
-Simple Figure
-\caption{Simple Figure}
-\label{fig:simple}
-\end{figure}
-
-\begin{table}
-\caption{Simple Table}
-
-\label{tab:simple}
-Simple Table
-\end{table}
-
-cref Demonstration: Cref at beginning of sentence, cref in all other cases.
-
-\Cref{fig:simple} shows a simple fact, although \cref{fig:simple} could also show something else.
-
-\Cref{tab:simple} shows a simple fact, although \cref{tab:simple} could also show something else.
-
-\Cref{sec:intro} shows a simple fact, although \cref{sec:intro} could also show something else.
-
-Brackets work as designed:
-<test>
-
-The symbol for powerset is now correct: $\powerset$ and not a Weierstrass p ($\wp$).
-
-\begin{inparaenum}
-\item All these items...
-\item ...appear in one line
-\item This is enabled by the paralist package.
-\end{inparaenum}
-
-``something in quotes'' using plain tex or use \enquote{the enquote command}.
-
-\section{Conclusion and Outlook}
-
-\subsubsection*{Acknowledgments}
-...
-
-In the bibliography, use \texttt{\textbackslash textsuperscript} for ``st'', ``nd'', ...:
-E.g., \enquote{The 2\textsuperscript{nd} conference on examples}.
-When you use \href{https://www.jabref.org}{JabRef}, you can use the clean up command to achieve that.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bibliographystyle{splncs03}
 \bibliography{paper}
-
-All links were last followed on October 5, 2014.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
