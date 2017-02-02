@@ -265,15 +265,20 @@ retrospective of A5/1 cryptanalysis works related to our study.
 A5/1 keystream generator consists of 3 linear feedback shift registers (LFSRs)
 \cite{MENEZES}, defined by the following primitive polynomials:
 
-\begin{gather*} X^{19}+X^{18}+X^{17}+X^{14}+1, LFSR1;\\X^{22}+X^{28}+1,
-	LFSR2;\\ X^{23}+X^{22}+X^{21}+X^{8}+1, LFSR3.\end{gather*}
+\begin{gather*} 
+	X^{19}+X^{18}+X^{17}+X^{14}+1, LFSR1;
+	\\X^{22}+X^{28}+1, LFSR2;
+	\\X^{23}+X^{22}+X^{21}+X^{8}+1, LFSR3.
+\end{gather*}
 
 The illustration of A5/1 generator's work scheme can be seen at
 \cref{fig:a5gen}.
 
 \begin{figure}
-	\includegraphics[width=\linewidth]{./a51.png} \caption{A5/1 generator work
-scheme} \label{fig:a51gen} \end{figure}
+	\includegraphics[width=\linewidth]{./a51.png} 
+	\caption{A5/1 generator work scheme} 
+	\label{fig:a51gen} 
+\end{figure}
 
 The outputs of LFSRs are mixed with linear function, which provides the perfect
 corellation immunity. Non-linearity of the equations is achieved by clocking
@@ -282,7 +287,8 @@ the 3 registers could be clocked or it could retain it's current state.
 Register with index $j \in \{1,2,3\}$ will be clocked if the following boolean
 function $\chi_j$ becomes 1:
 
-\begin {gather*} \chi_j = (b_j \equiv majority(b_1,b_2,b_3));
+\begin {gather*}
+\chi_j = (b_j \equiv majority(b_1,b_2,b_3)); 
 \\majority(A,B,C)=(A \wedge B) \vee (A \wedge C) \vee (B \vee C).
 \end{gather*}
 
@@ -331,9 +337,11 @@ on the A5/1 cryptographic strength \cite{COPAC}. Next we describe the essence
 of the Anderson's attack.
 
 
-\begin{figure} \includegraphics[width=\linewidth]{./a51and.png} \caption{The
-	set of guessing bits used in Anderson's attack (greyed out).}
-\label{fig:a51and} \end{figure}
+\begin{figure}
+	\includegraphics[width=\linewidth]{./a51and.png} 
+	\caption{The set of guessing bits used in Anderson's attack (greyed out).}
+	\label{fig:a51and}
+\end{figure}
 
 
 Anderson's attack is a typical example of a 'guess and determine attack' (see
@@ -355,10 +363,238 @@ the A5/1 generator over the search space of $2^{53}$. The simplicity of the
 algorithm provides an opportunity to implement it on a specialized
 computational architecture. One such implementation was built with FPGAs by
 authors of \cite{COPAC_1}. In the following sections we describe our
-implementation of this attack for modern GPUs.
+implementation of this attack for a modern GPU.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Implementation of the Anderson's Attack in bit-slicing
+technique}\label{sec:bitslc}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+The effeciency of a brute force attack is defined by two parameters: the speed
+of checking of the key candidates and the size of the search space. R.
+Anderson's idea described above give us a $$2^{53}$$ search space for the A5/1
+generator. Instead of using the 'naive' implementation of A5/1 generator, to
+speed up the key candidates checking procedure one can opt to use more
+sophisticated alternatives. We evaluated the performance of two different fast
+implementations of A5/1 generator in \cite{PAVT_2016}. The first one was based
+on an idea of precomputation of the states of the registers LFSR 1-3, and
+keeping the states in RAM, to use them as the look-up tables. This approach
+demonstrated a considerable speed-up against 'naive' implementation. A similiar
+method of precomputation of LFSRs was described in \cite{BSW}. However, in
+\cite{PAVT_2016} we found its performance inferior to the second
+implementation, that is based on the 'bit-slicing technique'. Next we briefly
+describe the idea of this technique, and it's application to Anderson's attack.
+
+Modern general-purpose computational architectures are suboptimal for
+implementation of many algorithms. The last operate with bits, while CPUs and
+GPUs typically operate with 32-256 bit words. As the result of this
+discrepancy, the 'naive' implementation of a cryptographical algorithm won't be
+fully using the platform's computational resources. For example, to conduct a
+'addition modulo 2' (XOR) operation on 2 boolean arguments, a modern CPU will
+position the arguments values into the lowest bits of two 32-bit
+general-purpose register (GPR), perform the computation and write the result
+into the third 32-bit GPR. In effect, 31 out of 32 bits of GPRs stay idle
+during this operation. This problem could be solved by using bitwise operations
+that work on GPRs like on boolean vectors - digit by digit. A cryptographical
+algorithm could be oftentimes represented as a logical scheme built with the
+basic logical gates. Coupled with bitwise operations, this representation
+allows the computational platform to apply the algorithm to as many sets of
+data, as there are bits in it's GPR (e.g. the platform's register capacity).
+This method is called 'SIMD within a register' or the 'bit-slicing' technique.
+The first mention of bit-slicing technique applied to cryptographical problem
+belongs, seemingly, to E.Biham \cite{BIT_SL}.
+
+Now we describe the main idea of the bit-slicing technique. Consider an
+arbitrary total boolean function
+
+\begin{gather*} 
+	f:\{0,1\}^n\rightarrow\{0,1\}
+\end{gather*}
+
+This function can be represented in the form of the Boolean circuit $C(f)$ over
+some complete basis $B$. A common example of such basis is
+$B=\{\land,\lor,\neg\}$, but we'll use the basis $B=\{\land,\lor,\neg,\oplus\}$
+instead, since it better fits our goals.
+
+Now consider the problem of calculating the arbitrary total boolean function
+$f:\{0,1\}^n\rightarrow\{0,1\}$ over all $2^n$ possible inputs. For each input
+$X\in\{0,1\}^n$ one can calculate the value of $f$ as a superposition of the
+basis functions, according to the scheme $C(f)$. We can now select at least one
+fixed order of calculation of basis functions from $C(f)$, that results in
+getting the value of $f$. Let $m$ be the number of internal nodes in $C(f)$.
+Assuming that the calculation of one basis function takes one processor
+instruction, the computation of $f$ over all inputs from $\{0,1\}^n$ will take
+$m\cdot2^n$ instructions.
+
+A computational architecture that, in a single instruction execution,
+calculates many copies of the same function over many different memory cells,
+is called the 'single instruction, multiple data' (SIMD) architecture. When a
+modern computational device executes a bitwise logical instruction over its
+GPRs, it effectively acts as a SIMD device, individual bits of GPRs playing the
+role of the individual memory cells of a SIMD device. The calculation order of
+functions in the scheme $C(f)$ always stays the same. This makes it possible to
+compute this functions over as many inputs, as there are bits in the device's
+GPR.  In effect, if $D$ is the device's GPR capacity, we can simultaneously
+walk $D$ instances of the scheme $C(f)$, effectively calculating the value of
+$f$ for inputs $X_1,...,X_D$.
+
+Let's examine the arbitrary basis function $g$ with arity 2, and the
+corresponding internal node of the scheme $C(f)$. We denote it as $G(x_1,x_2)$,
+meaning that it has a single output and two inputs, which values are determined
+by boolean variables $x_1,x_2$. Next, collate $g$ with three GPRs denoted
+$R_1(g),R_2(g),R_3(g)$, each of which is comprised of $D$ single-bit memory
+cells, filled in the following way: 
+\begin{itemize} 
+\item Register $R_1$ contains $D$ values of the variable $x_1$, corresponding
+ to $X_1,...,X_D$; 
+\item Register $R_2$ contains $D$ values of the variable $x_2$, corresponding
+ to $X_1,...,X_D$;
+\item Register $R_3$ contains $D$ values of the function $g$, corresponding to
+ matching values of $X_1,...,X_D$.
+\end{itemize}
+Suppose that all $D$ instances of values of $g$ (matching the corresponding
+values of $x_1$ and $x_2$) can be computed as a result of a single bitwise
+instruction applied to register $R_1(g),R_2(g)$, while their result is put into
+register $R_3(g)$.  If this fact is holding true for every basis function in
+the scheme $C(F)$, the computation of $f$ for every input from $\{0,1\}^n$ will
+require $m\cdot\frac{2^n}{D}$ instructions. This is the key idea of the
+bit-slicing technique \cite{fig:bitsl}.
+
+
+\begin{figure} \includegraphics[width=\linewidth]{./bitslice.png}
+	\caption{Simultaneous computation of $D$ instances of scheme $C(f)$ with
+	bit-slicing technique} \label{fig:a51gen} 
+\end{figure}
+
+We will call the process of computation of the function $f$ on a single input
+from $\{0,1\}^n$ a "thread", by analogy with the computational threads in a
+SIMD device. So, with the use of bit-slicing technique, it takes $m$
+instructions to complete the computation of $D$ threads.
+
+Now we describe the details of bit-slicing implementation of the A5/1
+generator. Suppose that a computational device is able to calculate $D$
+instances of any function from the basis $B=\{\land,\lor,\neg,\oplus\}$. Each
+of $n\in\{1,...,64\}$ cells of LFSR 1-3 gets a matching word $W_n\in\{0,1\}^D$:
+
+\begin{gather*} 
+	LFSR1:W_1,...,W_{19}; 
+	\\LFSR2:W_{20},...,W_{42}; 
+	\\LFSR3:W_{43},...,W_{64}.
+\end{gather*}
+
+In a bit-slicing technique, the shift of the LFSR register (LFSR 1 in this
+example) will take the following form: 
+\begin{gather*} 
+	W`_1=W_{19} \oplus W_{18} \oplus W_{17} \oplus W_{14}, 
+	\\W`=W_{n-1}, n \in \{2,...,19\},
+\end{gather*}
+where $\oplus$ is the bitwise addition modulo 2 of boolean vectors of length
+$D$ operator. The calculation of the keystream bit will look like:
+\begin{gather*} 
+	W_{out}=W_{19} \oplus W_{41} \oplus W_{64}.
+\end{gather*}
+
+The conditional clocking is somewhat more complex to implement in a bit-slicing
+technique. First, to know if the LFSRs should be shifted or not, one needs to
+calculate the corresponding clocking flags $F_1,F_2,F_3$ using the majority
+function: 
+\begin{gather*} 
+	W_{maj}=maj(W_8,W_{30},W_{52})=(W_9 \wedge W_{30}) \vee (W_9 \wedge W_{52})
+	\vee (W_{30} \vee W_{52}), \\F_1 = W_9 \oplus {\neg W_{maj}}, \\F_2 =
+	W_{30} \oplus {\neg W_{maj}}, \\F_3 = W_{52} \oplus {\neg W_{maj}},
+\end{gather*} 
+(all operations are bitwise operations on the vector of the length $D$).
+
+To implement the conditional clocking of a LFSR one can use the bitwise
+counterpart of the "bitselect" function of arity 3: 
+\begin{gather*} a,b,c \in \{0,1\}; \\ BS(a,b,c) = \left\lbrace
+	\begin{array}{ll} b,a=1, \\ c,a=0.
+	\end{array} \right.
+\end{gather*} 
+
+If the computational architecture lacks the hardware implementation of this
+function, it can be emulated with the usage of the standard bitwise functions
+corresponding to the functions of the basis $B$ (example for LFSR 1):
+\begin{gather*} BS(a,b,c) = (a \wedge b) \vee (\neg a \wedge c).
+\end{gather*}
+
+Clocking the LFSR 1 with the use of $BS(a,b,c)$ and corresponding flag $F_1$
+looks the following way:
+\begin{gather*} 
+	W'_1 = BS(F_1, (W_{19} \oplus W_{18} \oplus W_{17} \oplus W_{14}), W_1);
+	\\W'_n = BS( F_1, W_{n-1}, W_n), n \in \{2,..,19\}.
+\end{gather*}
+
+Some important details about the bit-slicing implementation of the Anderson's
+attack should be covered still. The Anderson's attack follows 2 stages:
+\begin{enumerate} 
+	\item Calculating the values of 11 bits of LFSR 2 lying left of the
+	 clocking bit with the information from the remaining 53 bits (guessed) and
+		the keystream (known).
+	\item Clocking the generator as normal to check if the guessed filling of
+	 the generator matches the known keystream.
+\end{enumerate}
+
+The irregular clocking of the A5/1 generator makes it generally impossible to
+predict how many clockings of the whole generator (bits of keystream) would be
+needed to shift LFSR 2 11 times to complete the Stage 1 of the attack.
+Therefore, we again put to use the bitselect function to implement the split of
+the attack into 2 stages. Since each individual thread should be able to stay
+in a stage and advance to the next stage independent of other threads, we
+introduce the special boolean vector $\phi = (\phi_1,...,\phi_D)$, called the
+"attack stage flag". The thread with number $i, i \in \{1,...,D\}$ being in the
+Stage 1 of the attack corresponds to $\phi_i = 0$, and the Stage 2 of the
+attack corresponds to $\phi_i=1$. Let $y_1,...,y_{64}$ be the bits of the
+keystream analyzed. Now the clocking of the LFSR 2 considers the stage of the
+attack through the usage of the attack stage flag: \begin{gather*} W^\ast_{41}
+	= BS(\phi, W_{41},(y \oplus W_{19} \oplus W_{64}));\\W'_{20} =
+	BS(F_2,(W^\ast_{41} \oplus W_{40}), W_{20});\\W'_n = BS(F_2,W_{n-1},W_n), n
+	\in \{20,...,41\}. 
+\end{gather*}
+
+Here $W^\ast_{41}$ is a helper vector holding temporary data. $y$ is the
+current bit of the keystream, in the form of a vector consisting of $D$ copies
+of $k$-th bit of the keystream. In effect, Stage 1 of the attack's goal is to
+calculate the last bit of the LFSR 2 from known keystream bits and known
+(guessed) last bits of the LFSRs 1 and 3. At the Stage 2 the last bit of the
+LFSR 2 is known and the whole generator scheme is clocked as normal. For the
+$i$-th thread the attack stage flag $\phi_i$ is set to 1 after the thread's
+instance of LFSR 2 was shifted 11 times. To count the number of LFSR 2 shifts
+on a per-thread basis, the bit-slicing implementation of an incremental counter
+is used.
+
+The Anderson's attack algorithm described above was realized on an NVIDIA GPU
+with the use of CUDA SDK 8.0 \cite{CUDA}. The comparison of the performance of
+a GPU to a CPU in execution of bit-slicing and LFSR precomputation-based
+\cite{BSW} implementations of Anderson's attack is shown in
+\cite{tab:gpuspeed}.
+
+
+\begin{table} \caption{(LOP3.LUT is a special instruction that implements
+	arbitrary bitwise arity 3 functions in hardware. We use it as a substitute
+	for the "bitselect" instruction.)} 
+	\label{tab:gpuspeed} Performance of the different implementations of the
+	Anderson's attack (search space is $2^{53}$) on a CPU and a GPU, measured
+	in millions of key checks per second.  
+	\begin {center} \begin{tabular} {| l | l | l | l |} \hline Computational
+		device & Bit-slicing & LFSR precomputation \cite{BSW} \\ \hline CPU
+		Intel Core I7 930 & 37 & 7 \\ \hline GPU NVIDIA GTX 1050 Ti & 9180 &
+		483 \\ \hline GPU NVIDIA GTX 1050 Ti (LOP3.LUT) & 11950 & - \\ \hline
+
+
+	\end{tabular}
+\end {center}
+\end{table}
+
+Data provided in the \Cref{tab:gpuspeed} tells us that even one mid-range
+consumer GPU is enough to make the Anderson's attack run time practical (it
+will take around 250 hours). A modern computational cluster outfitted with GPUs
+will complete the attack in mere minutes or less. The Anderson's attack's
+advantage over the rainbow-tables attack \cite{RAINBOW} is the former's ability
+to restore the secret key from 64 bits of keystream with the 100\% probability.
+It's advantge over the attack described in \cite{COPAC_1} is in a usage of a
+consumer-grade off-the-shelf hardware.
 
 
 
