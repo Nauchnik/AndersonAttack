@@ -141,18 +141,16 @@ qt=false%
 
 \begin{document}
 
-\title{Implementation of a Brute Force Attack on A5/1 Cryptographical
-Algorithm in a GPU-based Volunteering Computing Project}
-%If Title is too long, use \titlerunning
-\titlerunning{A5/1 Brute Force on GPU}
+\title{Implementation of a Brute Force Attack on the A5/1 Keystream Generator
+in a GPU-based Volunteer Computing Project}
+\titlerunning{Brute Force Attack on A5/1}
 
 %Single insitute
-\author{Bulavintsev V. \and Semenov A. \and Zaikin O.}
-%If there are too many authors, use \authorrunning
-%\authorrunning{First Author et al.}
+\author{Vadim Bulavintsev \and Alexander Semenov \and Oleg Zaikin}
+\authorrunning{Vadim Bulavintsev et al.}
 \institute{Matrosov Institute for System Dynamics and Control Theory of
-Siberian Branch of Russian Academy of Sciences
-(ISDCT SB RAS)}
+Siberian Branch of Russian Academy of Sciences, Irkutsk, Russia
+\email{ichorid@mail.ru, biclop.rambler@yandex.ru, zaikin.icc@gmail.com}}
 
 %Multiple insitutes
 %Currently disabled
@@ -174,20 +172,18 @@ Insitute 2\\
 \maketitle
 
 \begin{abstract}
-We present an advanced brute force attack on the A5/1 cryptoalgorithm,
-	that is still broadly used in modern GSM networks. We use a
-	well-known idea introduced by R.Anderson more than 20 years ago
-	to greatly reduce the search space. The primary contribution of
-	this article is the implementation of the Anderson's attack on a GPU platform
+We present an advanced brute force attack on the A5/1 keystream generator,
+	that is still widely used in modern GSM networks. We use a
+	well-known idea introduced by R. Anderson more than 20 years ago
+	to greatly reduce the search space. The main contribution of
+	the present paper is the implementation of the Anderson's attack on a GPU platform
 	with the bitslice technique. The preliminary estimates of the
-	attack's speed showed that, with the use of a GPUs processing power, 
-	the attack could be conducted in the real
-	time on a modern computer cluster or in a volunteer computing
-	project. To verify our estimates with the use of BOINC technology 
-	we concieved the specialized volunteering computing project 
-	and executed our variant of Anderson's attack within it. In the
-	7 days the project lasted, 10 A5/1 cryptanalysis problems were
-	solved. The results presented in this work provide yet another
+	attack's speed showed that, with the use of GPUs processing power, 
+	the attack could be performed in the real time on a modern computer cluster or in a volunteer computing
+	project. To verify our estimates with the use of the BOINC technology 
+	we launched the specialized volunteer computing project 
+	and executed our variant of Anderson's attack within it. 10 A5/1 cryptanalysis problems were
+	solved in 7 days in the project. The results presented in this work provide yet another
 	proof of A5/1's cryptographical weakness that make it totally
 	unsuitable for transmission of any kind of sensitive data
 	through modern GSM networks.
@@ -195,7 +191,7 @@ We present an advanced brute force attack on the A5/1 cryptoalgorithm,
 \end{abstract}
 
 \begin{keywords}
-A5/1 algorithm, brute-force cryptanalysis, GPU, volunteering computing
+keystream generator, A5/1, cryptanalysis, brute force attack, GPU, volunteer computing, BOINC
 \end{keywords}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -275,7 +271,7 @@ The illustration of A5/1 generator's work scheme can be seen at
 \cref{fig:a5gen}.
 
 \begin{figure}
-	\includegraphics[width=\linewidth]{./a51.png} 
+	\includegraphics[width=\linewidth]{./a51.eps} 
 	\caption{A5/1 generator work scheme} 
 	\label{fig:a51gen} 
 \end{figure}
@@ -338,7 +334,7 @@ essence of the Anderson's attack.
 
 
 \begin{figure}
-	\includegraphics[width=\linewidth]{./a51and.png} 
+	\includegraphics[width=\linewidth]{./a51and.eps} 
 	\caption{The set of guessing bits used in Anderson's attack (greyed out).}
 	\label{fig:a51and}
 \end{figure}
@@ -381,7 +377,7 @@ implementations of A5/1 generator in \cite{PAVT_2016}. The first one was based
 on an idea of precomputation of the states of the registers LFSR 1-3, and
 keeping the states in RAM, to use them as the look-up tables. This approach
 demonstrated a considerable speed-up against 'naive' implementation. A similiar
-method of precomputation of LFSRs was described in \cite{BSW}. However, in
+method of precomputation of LFSRs was described in \cite{DBLP:conf/fse/BiryukovSW00}. However, in
 \cite{PAVT_2016} we found its performance inferior to the second
 implementation, that is based on the 'bit-slicing technique'. Next we briefly
 describe the idea of this technique, and it's application to Anderson's attack.
@@ -403,7 +399,7 @@ allows the computational platform to apply the algorithm to as many sets of
 data, as there are bits in it's GPR (e.g. the platform's register capacity).
 This method is called 'SIMD within a register' or the 'bit-slicing' technique.
 The first mention of bit-slicing technique applied to cryptographical problem
-belongs, seemingly, to E.Biham \cite{BIT_SL}.
+belongs, seemingly, to E. Biham \cite{BIT_SL}.
 
 Now we describe the main idea of the bit-slicing technique. Consider an
 arbitrary total boolean function
@@ -462,7 +458,7 @@ require $m\cdot\frac{2^n}{D}$ instructions. This is the key idea of the
 bit-slicing technique \cite{fig:bitsl}.
 
 
-\begin{figure} \includegraphics[width=\linewidth]{./bitslice.png}
+\begin{figure} \includegraphics[width=\linewidth]{./bitslice.eps}
 	\caption{Simultaneous computation of $D$ instances of scheme $C(f)$ with
 	bit-slicing technique} \label{fig:a51gen} 
 \end{figure}
@@ -567,9 +563,8 @@ is used.
 The Anderson's attack algorithm described above was realized on an NVIDIA GPU
 with the use of CUDA SDK 8.0 \cite{CUDA}. The comparison of the performance of
 a GPU to a CPU in execution of bit-slicing and LFSR precomputation-based
-\cite{BSW} implementations of Anderson's attack is shown in
+\cite{DBLP:conf/fse/BiryukovSW00} implementations of Anderson's attack is shown in
 \cite{tab:gpuspeed}.
-
 
 \begin{table} \caption{(LOP3.LUT is a special instruction that implements
 	arbitrary bitwise arity 3 functions in hardware. We use it as a substitute
@@ -579,7 +574,7 @@ a GPU to a CPU in execution of bit-slicing and LFSR precomputation-based
 	in millions of key checks per second.  
 	\begin {center} 
 	\begin{tabular} {| l | l | l |} \hline Computational device & Bit-slicing &
-		LFSR precomputation \cite{BSW} \\ \hline CPU Intel Core I7 930 & 37 & 7
+		LFSR precomputation \cite{DBLP:conf/fse/BiryukovSW00} \\ \hline CPU Intel Core I7 930 & 37 & 7
 		\\ \hline GPU NVIDIA GTX 1050 Ti & 9180 & 483 \\ \hline GPU NVIDIA GTX
 		1050 Ti (LOP3.LUT) & 11950 & - \\ \hline
 	\end{tabular}
@@ -601,31 +596,29 @@ consumer-grade off-the-shelf hardware.
 project}\label{sec:boinc}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 In order to solve 10 cryptanalysis problems for the A5/1 keystream generator we
-launched the volunteer computing project AndersonAttack@home. The computing
+launched the volunteer computing project AndersonAttack@home. The client (computing)
 application of this project is based on the CUDA implementation, which was
 described in the previous section.
 
-Volunteer computing is a type of distributed computing which uses computational
-resources of PCs (hosts) of private persons called volunteers. Each volunteer
-computing project is designed to solve one or several hard problems. When PC is
-connected to the project, all the calculations are performed automatically and
-do not inconvenience user since only idle resources of PC are used. Volunteers
-get credits (points) for each calculated task. 
+Volunteer computing \cite{DBLP:conf/ccgrid/AndersonF06} is a type of distributed computing \cite{Foster:1995:DBP:527029} which uses computational resources of PCs (hosts) of private persons called volunteers. 
+Each volunteer computing project is designed to solve one or several hard scientific problems. When PC is
+connected to a project, all calculations are performed automatically and
+do not inconvenience user since only idle PC resources are used.
 
-Volunteer computing project consists of the following basic parts: server
+Each volunteer computing project consists of the following basic parts: server
 daemons, database, web site and client application. Daemons include
-\textsc{work generator} (generates tasks to be processed), \textsc{validator}
-(checks the correctness of the results received from volunteer's PCs) and
-\textsc{assimilator} (processes correct results). Client application should
+\textsc{work generator} (it generates tasks to be processed), \textsc{validator}
+(it checks the correctness of the results received from volunteer's PCs) and
+\textsc{assimilator} (aimed at processing correct results). A client application should
 have versions for the widespread computing platforms.  One of attractive
 features of volunteer computing is its low cost --- to maintain a project one
 only needs a dedicated server working 24/7.
 
 AndersonAttack@home is based on BOINC (Berkley Open Infrastructure for Network
-Compuitng \cite{DANDERSON2004}), which is the most popular platform for
+Compuitng \cite{Anderson:2004:BSP:1032646.1033223}), which is the most popular platform for
 volunteer computing. Each BOINC-based project is separate, but any private
-person can take part in arbitrary project with the help of standard BOINC
-manager. This BOINC manager allows users to change projects priority and to
+person can take part in arbitrary project with the help of the standard BOINC
+manager. This manager allows users to change projects priority and to
 regulate the mode of PC using. 
 
 BOINC provides a form of redundant computing.  According to this, several (at
@@ -634,27 +627,28 @@ on multiple hosts, the results are compared on a project server by validator,
 and are accepted only when a 'consensus' is reached. The sufficient number of
 successful results is called a 'quorum'. If for a particular workunit results
 of tasks are nonsimilar, then new tasks must be created and sent. The scheme of
-a BOINC-based project with the quorum of 2 is shown on the Fig. 1.
+a BOINC-based project with the quorum of 2 is shown on Fig.~\ref{fig:boinc}.
 
-\begin{figure} \includegraphics[width=\linewidth]{./boinc.png}
-	\caption{Simultaneous computation of $D$ instances of scheme $C(f)$ with
-	bit-slicing technique} \label{fig:a51gen} 
-\end{figure}
+%\begin{figure}
+%\includegraphics[width=\linewidth]{./BOINC_project_scheme.eps}
+%	\caption{The scheme of a BOINC-based project with the quorum of 2} 
+%	\label{fig:boinc} 
+%\end{figure}
 
-On the first stage of our experiment on AndersonAttack@home, a family of
-workunits was generated on the project server. In each workunit values of 12
-variable cells out of 53 (see the previous section) were fixed.  Thus, 40960
-workunits were generated for 10 cryptanalysis instance in total. Usually the
+In the first stage of our experiment, a family of workunits was generated on 
+the project server. In each workunit values of 12 out of 53 cells of the A5/1 generator (see the previous section) 
+were fixed. Thus, 40960 workunits were generated for 10 cryptanalysis problems in total. Usually, the
 value of deadline for workunits in BOINC projects is equal to 10-14 days. In
-our project we used the deadline of 1 day, because the experiment was quite
-small.  On the next stage all generated workunits were processed in a desktop
-grid formed by project’s hosts. This took about 7 days. As a result, solutions
-for all considered instances were successfully found. All these solutions are
-listed in Table 1. It should be noted, that collisions were found for 7 out of
-10 instances (5 of them have 1 collision, each of other 2 instances has 2
+our project, we used a deadline of 1 day, because the experiment was quite
+small. In the next stage all generated workunits were processed in a desktop
+grid formed by project's hosts. This took about 7 days. As a result, solutions
+for all considered problems were successfully found (see Table~\ref{tab:keys}). It should be noted, 
+that we found collisions for 7 out of 10 problems (5 of them have 1 collision, each of other 2 problems has 2
 collisions).
 
-\begin{table} \caption{} \label{tab:keys} Original secret keys and collisions of the
+\begin{table} 
+\caption{} 
+\label{tab:keys} Original secret keys and collisions of the
 	generator A5/1 (in hexadecimal format) which were found in
 	AndersonAttack@home.
 	\begin {center} 
@@ -663,34 +657,34 @@ collisions).
 			\hline
 			Instance & Keystream & Secret key \\ \hline
 			1 & 0x770c0410869366f1 & original 0x11b8e4340276c4ee \\
-			  &                    & collision1 0x42634f3266d302a3 \\ \hline
+			  &                    & collision 1 0x42634f3266d302a3 \\ \hline
 			2 & 0xae9590560c26e9ed & original 0x4c656fd73e59ab9b \\
-			  &                    & collision1 0xcf23e4722e3cfb68 \\ \hline
+			  &                    & collision 1 0xcf23e4722e3cfb68 \\ \hline
 			3 & 0xdd4b3ab7f6cf8224 & original 0x09429d158555f4b3 \\
-			  &                    & collision1 0x09429d158553e967 \\
-			  &                    & collision2 0x40e5f2c8128a1781 \\ \hline
+			  &                    & collision 1 0x09429d158553e967 \\
+			  &                    & collision 2 0x40e5f2c8128a1781 \\ \hline
 			4 & 0x93cd42d97eb75fd9 & original 0xfa386a338355aafd \\
-			  &                    & collision1 0xf9e81096bb4d0aad \\ 
-			  &                    & collision2 0xf9e81096bb4a8556 \\ \hline
+			  &                    & collision 1 0xf9e81096bb4d0aad \\ 
+			  &                    & collision 2 0xf9e81096bb4a8556 \\ \hline
 			5 & 0x925e423c98121152 & original 0xe5cf81035ce5fbe2 \\ \hline
 			6 & 0x3b3464bd6e377b87 & original 0x9625e9d810b46248 \\
-			  &                    & collision1 0xf5aa1be2d6c36e18 \\ \hline
+			  &                    & collision 1 0xf5aa1be2d6c36e18 \\ \hline
 			7 & 0x0367d29121dd1677 & original 0xd1b8b06086edf162 \\ \hline
 			8 & 0x6b49230b7fc0249d & original 0xbe81a896968c486b \\ \hline
 			9 & 0xc65847556752d14c & original 0xb6f65d2855a211c0 \\ 
-			  &                    & collision1 0xb6f65d2855a508e0 \\ \hline
+			  &                    & collision 1 0xb6f65d2855a508e0 \\ \hline
 			10& 0x07bb7f83d26072ec & original 0x122a1a2955286b9f \\ 
-			  &                    & collision1 0xd5151aaa50490012 \\ \hline
+			  &                    & collision 1 0xd5151aaa50490012 \\ \hline
 		\end{tabular}
 	\end {center}
 \end{table}
 
 
 According to BOINC statistics, 143 active hosts of 90 volunteers participated
-in the experiment.  Here by ‘active’ we mean a host which correctly processed
-at least one task.  Active volunteer has at least one active host. It should be
-noted, there is only 1 volunteer from Russia in top-10 project volunteers list
-(formed according to the amount of credits), the most of them are from United
+in the experiment. Here by 'active' we mean a host which correctly processed
+at least one task. Active volunteer has at least one active host. It should be
+noted, that there is only 1 volunteer from Russia in top-10 project's volunteers list
+(formed according to the amount of calculations), the most of them are from United
 States (4 persons). In top-10 list of teams there is only one team from Russia
 too.
 
@@ -701,41 +695,40 @@ too.
 As was noted before, at the time of writing of our article the A5/1 algorithm
 remains one of the most popular research subjects among cryptography
 specialists, along with DES and RSA algorithms. The exact authorship of this
-algorithm is unknown, but some experts argue that chances are high that it's
+algorithm is unknown, but some experts argue that chances are high that its
 creation should be attributed to a French special agencies. Numerous sources
-describe the events that led to it's structure leaked to general public. In
-fact, it's internal workings were already known to research community in 1994:
-R.Anderson's note (a mailing list message) written in that period was one of
-the firs works on A5/1 cryptanalysis. The complete knowledge of the A5/1 were
+describe the events that led to its structure leaking to general public. In
+fact, its internal workings were already known to research community in 1994:
+R. Anderson's note (a mailing list message) written in that period was one of
+the first works on A5/1 cryptanalysis. The complete knowledge of A5/1 were
 acquired in 1999 as a result of a reverse engineering of a mobile phone.
 
 Earlier we mentioned Anderson's attack (described by Ron Anderson in a short
 note in 1994 \cite{ANDERSON}) was the first attack on A5/1 with compexity less
 than that of a trivial brute-force walk over the whole keyspace. Shortly
-afterwards J.Golic suggested the "Alleged" attack on the A5/1, based on a
-linearization of the equations describing A5/1 \cite{GOLIC}. The Golic's attack
-estimated complexity is $C\dot2^{40}$, where $C$ denoting the complexity of
+afterwards J. Golic suggested the ``Alleged'' attack on the A5/1, based on a
+linearization of the equations describing A5/1 \cite{Golic1997}. The Golic's attack
+estimated complexity is $C \cdot 2^{40}$, where $C$ denotes the complexity of
 solving the system of linear equations over $GF(2)$ with a very substanial
 number of dimensions. The next widely known attack on the A5/1 was presented in
-\cite{BSW}. To speed up the A5/1 algorithm it's authors used the technique of
-precomputation of LFSRs we mentioned in \cref{sec:bitsl}. It's worth to note
-that the attack presented in \cite{BSW}, along with those presented in
-\cite{BIKHAM2000}, \cite{EKDAHL2003}, \cite{BARKAN2008} \todo{Check the actual
-articles! Not sure if these point to the right ones.}, require substanial
+\cite{DBLP:conf/fse/BiryukovSW00}. To speed up the A5/1 algorithm its authors used the technique of
+precomputation of LFSRs we mentioned in \Cref{sec:bitslc}. It's worth to note
+that the attack presented in \cite{DBLP:conf/fse/BiryukovSW00}, along with those presented in
+\cite{Biham2000,DBLP:journals/tit/EkdahlJ03,Barkan2008}, require substanial
 lengths of known keystream (several seconds at best). These attacks can be
 deemed realistic, but they do not demonstrate vulnerability of the GSM security
-protocols as evidently, as those belonging to the "advanced brute force" class,
+protocols as evidently, as those belonging to the ``advanced brute force'' class,
 that we will discuss below. For the rest of the section we consider an attack
-practical if it's real-life implementation is able to persistently find the
-secret key by analyzing no more than 2 frames (912 bits) of the keystream, the
+practical if its real-life implementation is able to persistently find the
+secret key by analyzing no more than 2 frames (912 bits) of a keystream, the
 amount that could always be extracted from a call in a GSM network by
 exploiting the protocol vulnerability described in \Cref{sec:alg}.
 
-It seems that the first practical attack ('practical' in a sense we established
-above) was presented in \cite{COPAC_1}. It's authors implemented the optimezed
-variant of the Anderson's attack on specialized computational device of their
-own design, assembled from 120 "Xilinx Spartan 3" FPGAs. The authors state
-\cite{COPAC_1} that the attack took about 6 hours to complete. It's worth
+It seems that the first practical attack (``practical'' in a sense we established
+above) was presented in \cite{Guneysu:2008:CC:1446228.1446266}. It's authors implemented the optimized
+variant of the Anderson's attack on a specialized computational device of their
+own design, assembled from 120 ``Xilinx Spartan 3'' FPGAs. The authors state
+\cite{Guneysu:2008:CC:1446228.1446266} that the attack took about 6 hours to complete. It's worth
 mentioning that the COPACOBANA architecture was used for cryptanalytical
 research of several other ciphers, e.g. DES \cite{COPAC_2}.
 
@@ -792,11 +785,12 @@ implementation of attack on A5/1 generator will serve as yet another strong
 argument against the usage of this algorithm in the transfer of sensible data
 through GSM networks.
 
-
+\section*{Acknowledgment}
+The research was funded by Russian Science Foundation (project No. 16-11-10046). The authors would like to thank Stepan Kochemazov for helpful discussions and valuable comments.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \bibliographystyle{splncs03}
-\bibliography{paper}
+\bibliography{pact2017_bulavintsev_ref}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
